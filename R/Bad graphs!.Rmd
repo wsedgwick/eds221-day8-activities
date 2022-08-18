@@ -1,0 +1,190 @@
+---
+title: "Worst Graphs"
+output: html_document
+date: '2022-08-17'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(here)
+library(paletteer)
+```
+
+
+
+```{r}
+space_launches <- read_csv(here("data", "space_launches.csv"))
+```
+
+```{r}
+# Shit graph 1
+
+ggplot(data = space_launches, aes(x = launch_year)) +
+  geom_histogram() +
+  labs(x = "Time",
+       y = "Years") +
+  xlim(0, 2020)
+
+
+
+# Graph 2
+
+ggplot(data = space_launches, aes(x = launch_year)) +
+  geom_histogram(binwidth = 10) +
+  labs(x = "Time",
+       y = "Years")
+
+
+
+# Graph 3
+
+worst_graph <- ggplot(data = space_launches, aes(x = launch_year, y = launch_date)) +
+  geom_point(aes(color = agency_type)) +
+  labs(x = "This axis is the launch year",
+       y = "This axis is the launch date",
+       title = "This graph shows launch dates and agency responsible by launch year")
+
+
+
+# Graph 4
+
+ggplot(data = space_launches, aes(x = agency_type, y = launch_year)) +
+  geom_jitter() +
+  ylim(1900, 2020)
+
+
+
+# Graph 5
+
+ggplot(data = space_launches, aes(x = launch_date, y = launch_year)) +
+  geom_point(aes(color = launch_year)) +
+  scale_color_steps(low = "green", high = "gold") +
+  labs(title = "Look at my amazing graph without units!")
+
+
+
+# Graph 6
+
+ggplot(data = space_launches, aes(y = agency, x = launch_year)) +
+  geom_boxplot(aes(fill = agency), show.legend = FALSE) +
+  theme_gray() +
+  scale_fill_paletteer_d(palette = "palettesForR::Grays")
+  
+
+
+# Graph 7
+
+ggplot(data = space_launches, aes(x = launch_date, y = launch_year)) +
+  geom_point() +
+  facet_wrap(~agency, ncol = 1)
+
+
+
+# Graph 8
+
+ggplot(data = space_launches, aes(x = launch_year)) +
+  geom_histogram(binwidth = 10) +
+  labs(x = "Time",
+       y = "# of times") +
+  theme(panel.grid.major.x = element_line(color = "green", size = 10),
+        panel.grid.minor.x = element_line(color = "red", size = 5),
+        axis.title.x = element_text(color = "green2"),
+        axis.text.x = element_text(color = "brown"),
+        axis.text.y = element_text(color = "yellow"),
+        text = element_text(size = 18),
+        panel.background = element_rect(color = "gold",
+                                        fill = "peachpuff")) +
+  annotate("text", x = 2020, y = 1000, label = "Great Graph!", color = "blue") +
+  annotate("text", x = 1970, y = 1050, label = "Some text i forgot to remove", color = "gold", size = 3)
+
+```
+
+```{r}
+ggsave(plot = worst_graph,
+       here("worst_graph.jpg"))
+
+```
+
+```{r}
+
+
+sf_emissions <- read_csv(here("data", "San_Francisco_Communitywide_Greenhouse_Gas_Inventory.csv"))
+
+total_gg_by_sector <- sf_emissions %>% 
+  group_by(Sector_General) %>% 
+  summarise(Total = sum(Quantity))
+
+total_gg_by_year_commodity <- sf_emissions %>% 
+  group_by(Calendar_Year, Commodity_Type) %>% 
+  summarise(Total = sum(Quantity))
+
+subset <- sf_emissions %>% 
+  filter(Calendar_Year %in% c(2005:2019)) %>% 
+  filter(str_detect(Sector_Detail2, pattern = "PG&E")) %>%
+  select(Calendar_Year, Sector_Detail2, Emissions_mtCO2e)
+
+```
+
+
+
+
+```{r}
+
+# graph_subset <- sf_emissions %>% 
+#   filter(Commodity_Type %in% c("Natural Gas", "Gas Oil", "Gasoline", "Electricity"))
+
+
+sf_emissions_by_sector_median <- sf_emissions %>% 
+  mutate(Sector_General = fct_reorder(Sector_General, Emissions_mtCO2e, .fun = median))
+
+
+better_graph <- ggplot(data = sf_emissions_by_sector_median, aes(x = Calendar_Year, y = Emissions_mtCO2e)) +
+  geom_point(aes(color = Sector_General),
+             size = 1.2) +
+  facet_wrap(~Sector_General, ncol = 2) +
+  labs(x = "Calendar Year",
+       y = "CO2 emissions (in metric tons)",
+       title = "CO2 Emissions over time and between sectors",
+       subtitle = "in San Francisco")
+
+# ggsave(plot = better_graph,
+#       here("San Francisco CO2 Emissions by Calendar Year and Sector.jpg"))
+
+
+bestest_graph <- ggplot(data = sf_emissions_by_sector_median, aes(x = Calendar_Year, y = Emissions_mtCO2e)) +
+  geom_point(aes(color = Sector_General),
+              size = 1.2) +
+  facet_wrap(~Sector_General, ncol = 2) +
+  labs(x = "Calendar Year",
+       y = "CO2 emissions (in metric tons)",
+       title = "CO2 Emissions over time and between sectors",
+       subtitle = "in San Francisco")
+
+  
+```
+
+
+
+```{r}
+# Compare residential vs commercial emissions
+  
+sf_com_res <- sf_emissions %>% 
+  filter(Sector_General == "Buildings")
+
+  co2_median <- sf_com_res %>% 
+    mutate(Sector_Detail2 = fct_reorder(Sector_Detail2, Quantity, .fun = median))
+
+
+ggplot(data = co2_median, aes(x = Sector_Detail2, y = Quantity)) +
+  geom_boxplot() +
+  ylim(0, 2000000000) +
+  labs(x = "Sector",
+       y = "Amount of CO2 emissions (in megatons)",
+       title = "CO2 emissions per sector") +
+  theme(axis.text.x = element_text(angle = 70))
+
+
+```
+
